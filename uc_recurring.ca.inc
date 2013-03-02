@@ -1,5 +1,4 @@
 <?php
-// $Id: uc_recurring.ca.inc,v 1.1.2.11 2010/12/08 23:05:27 univate Exp $
 
 /**
  * @file
@@ -379,6 +378,11 @@ function uc_recurring_action_renewal_email($order, $recurring_fee, $settings) {
  * @see uc_recurring_action_renewal_email()
  */
 function uc_recurring_action_renewal_email_form($form_state, $settings = array()) {
+  // If a user is adding this action via the UI the settings will not exist.
+  if (is_null($settings)) {
+    $settings = array();
+  }
+
   // ca_build_email_form() function seems to be incorrectly part of uc_roles so
   // we add this hack to include the uc_roles.ca.inc here.
   module_load_include('inc', 'uc_roles', 'uc_roles.ca');

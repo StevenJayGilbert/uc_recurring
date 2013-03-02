@@ -1,5 +1,4 @@
 <?php
-// $Id: uc_recurring_subscription.admin.inc,v 1.1.2.3 2010/12/08 23:05:28 univate Exp $
 
 /**
  * @file
@@ -282,30 +281,39 @@ function uc_recurring_subscription_product_form($form_state, $product_id = NULL)
     );
   }
 
-  if (module_exists('uc_og_subscribe')) {
-    $form['access']['og'] = array(
-      '#type' => 'fieldset',
-      '#title' => 'Organic Groups',
-      '#description' => t('Select which organic groups a user should be subscribed to on a new subscripion purchased or unsubscribed when the subscription expires.'),
-      '#collapsible' => TRUE,
-      '#collapsed' => TRUE,
-      '#theme' => 'uc_recurring_subscription_og_items',
-    );
-    $groups = uc_og_subscribe_get_groups();
-    $form['access']['og']['subscribe_gid'] = array(
-      '#type' => 'select',
-      '#default_value' => $node->subscription->access['subscribe_gid'],
-      '#options' => $groups,
-      '#multiple' => TRUE,
-      '#parents' => array('access', 0, 'subscribe_gid'),
-    );
-    $form['access']['og']['unsubscribe_gid'] = array(
-      '#type' => 'select',
-      '#default_value' => $node->subscription->access['unsubscribe_gid'],
-      '#options' => $groups,
-      '#multiple' => TRUE,
-      '#parents' => array('access', 0, 'unsubscribe_gid'),
-    );
+  if (module_exists('og_actions')) {
+    $groups = og_all_groups_options();
+    if (count($groups)) {
+      $form['access']['og'] = array(
+        '#type' => 'fieldset',
+        '#title' => 'Organic Groups',
+        '#description' => t('Select which organic groups a user should be subscribed to on a new subscripion purchased or unsubscribed when the subscription expires.'),
+        '#collapsible' => TRUE,
+        '#collapsed' => TRUE,
+        '#theme' => 'uc_recurring_subscription_og_items',
+      );
+      $form['access']['og']['subscribe_grant_og'] = array(
+        '#type' => 'select',
+        '#default_value' => $node->subscription->access['subscribe_grant_og'],
+        '#options' => $groups,
+        '#multiple' => TRUE,
+        '#parents' => array('access', 0, 'subscribe_grant_og'),
+      );
+      $form['access']['og']['expire_grant_og'] = array(
+        '#type' => 'select',
+        '#default_value' => $node->subscription->access['expire_grant_og'],
+        '#options' => $groups,
+        '#multiple' => TRUE,
+        '#parents' => array('access', 0, 'expire_grant_og'),
+      );
+      $form['access']['og']['expire_revoke_og'] = array(
+        '#type' => 'select',
+        '#default_value' => $node->subscription->access['expire_revoke_og'],
+        '#options' => $groups,
+        '#multiple' => TRUE,
+        '#parents' => array('access', 0, 'expire_revoke_og'),
+      );
+    };
   }
 
 /*
@@ -667,8 +675,8 @@ function uc_recurring_subscription_subscriber_list($form_state, $product_id = -1
                         LEFT JOIN {uc_order_products} p ON p.order_product_id = u.order_product_id
                         LEFT JOIN {uc_recurring_subscription} s ON s.nid = p.nid
                         LEFT JOIN {node} n ON n.nid = p.nid
-                      WHERE u.remaining_intervals <> 0
-                      GROUP BY n.nid");
+                      WHERE u.status <> %d
+                      GROUP BY n.nid", UC_RECURRING_FEE_STATUS_EXPIRED);
 
   while ($subscribers = db_fetch_object($result)) {
     if (!isset($subscribers->title)) {
@@ -701,6 +709,7 @@ function uc_recurring_subscription_subscriber_list($form_state, $product_id = -1
       array('data' => t('Subscription Started'), 'field' => 'ru.created'),
       array('data' => t('Next Renewal'), 'field' => 'ru.next_charge'),
       array('data' => t('Price')),
+      array('data' => t('Status')),
       array('data' => t('Operations'))
     );
     $sql = "SELECT u.uid, u.name, ru.*, p.nid, p.title as product_title
@@ -709,7 +718,7 @@ function uc_recurring_subscription_subscriber_list($form_state, $product_id = -1
               LEFT JOIN {uc_order_products} p ON p.order_product_id = ru.order_product_id
               LEFT JOIN {uc_recurring_subscription} s ON s.nid = p.nid
               LEFT JOIN {node} n ON n.nid = p.nid
-            WHERE ru.remaining_intervals <> 0 AND n.nid = %d";
+            WHERE ru.status <> ". UC_RECURRING_FEE_STATUS_EXPIRED ." AND n.nid = %d";
 
     $sql .= tablesort_sql($header);
     $result = pager_query($sql, 20, 0, NULL, $product->nid);
@@ -721,7 +730,7 @@ function uc_recurring_subscription_subscriber_list($form_state, $product_id = -1
         'start' => format_date($account->created, 'small'),
         'next' => format_date($account->next_charge, 'small'),
         'price' => uc_price($account->fee_amount, array()),
-        //'status' => uc_recurring_state($account->status),
+        'status' => uc_recurring_fee_status_label($account->status),
         'ops' => implode(' | ', uc_recurring_get_fee_ops('user', $account))
       );
     }
@@ -857,11 +866,12 @@ function theme_uc_recurring_subscription_role_items($form) {
  *
  */
 function theme_uc_recurring_subscription_og_items($form) {
-  $header = array(t('Subscribe on purchase'), t('Unsubscribe on expiration'));
+  $header = array(t('Subscribe on purchase'), t('Granted on expiration'), t('Revoked on expiration'));
 
   $row = array();
-  $row[] = drupal_render($form['subscribe_gid']);
-  $row[] = drupal_render($form['unsubscribe_gid']);
+  $row[] = drupal_render($form['subscribe_grant_og']);
+  $row[] = drupal_render($form['expire_grant_og']);
+  $row[] = drupal_render($form['expire_revoke_og']);
   $rows[] = $row;
 
   $output = theme('table', $header, $rows);

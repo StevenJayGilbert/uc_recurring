@@ -1,5 +1,4 @@
 <?php
-// $Id: uc_recurring.api.php,v 1.1.2.10 2010/12/08 23:05:27 univate Exp $
 
 /**
  * Define the recurring payment method/gateway function callbacks.
@@ -139,6 +138,15 @@ function hook_recurring_product_deleted($pfid) {
  *   the recurring fee ID.
  */
 function hook_recurring_user_deleted($rfid) {
+}
+
+/**
+ * Act on recurring user that has just been saved (inserted or updated).
+ *
+ * @param $fee
+ *   The recurring fee object.
+ */
+function hook_recurring_fee_user_saved($fee) {
 }
 
 /**

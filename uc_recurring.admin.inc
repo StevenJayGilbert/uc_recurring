@@ -1,5 +1,4 @@
 <?php
-// $Id: uc_recurring.admin.inc,v 1.1.4.22 2010/12/08 23:05:27 univate Exp $
 
 /**
  * @file
@@ -167,6 +166,13 @@ function uc_recurring_admin_edit_form($form_state, $rfid, $fee_handler) {
       '#size' => 60,
     );
 
+    $form['fee_status'] = array(
+      '#type' => 'select',
+      '#title' => t('Recurring fee status'),
+      '#default_value' => $fee->status,
+      '#options' => uc_recurring_fee_status_label(),
+    );
+
     $form['fee_amount'] = array(
       '#type' => 'textfield',
       '#title' => t('Recurring fee amount'),
@@ -280,6 +286,7 @@ function uc_recurring_admin_edit_form_submit($form, &$form_state) {
   $number_intervals = empty($form_state['values']['unlimited_intervals']) ? $form_state['values']['number_intervals'] : UC_RECURRING_UNLIMITED_INTERVALS;
   $fee_amount = $form_state['values']['fee_amount'];
   $fee_title = $form_state['values']['fee_title'];
+  $fee_status = $form_state['values']['fee_status'];
 
   $next_charge = $fee->next_charge;
   if ($form_state['values']['reset_next_charge']) {
@@ -296,9 +303,16 @@ function uc_recurring_admin_edit_form_submit($form, &$form_state) {
     $next_charge = mktime($hour, $min, $sec, $month, $day, $year);
   }
 
+  $status = $fee->status;
+  if ($fee->status != UC_RECURRING_FEE_STATUS_ACTIVE && $number_intervals != 0) { 
+    $status = UC_RECURRING_FEE_STATUS_ACTIVE;
+  }
+
+  // todo - replace with a drupal_write_record()
   db_query("UPDATE {uc_recurring_users} SET fee_title = '%s', fee_amount = %f, regular_interval = '%s', "
-          ."remaining_intervals = %d, next_charge = %d WHERE rfid = %d", $fee_title, $fee_amount,
-           $interval, $number_intervals, $next_charge, $rfid);
+          ."remaining_intervals = %d, next_charge = %d, status = %d WHERE rfid = %d", $fee_title, $fee_amount,
+           $interval, $number_intervals, $next_charge, $status, $rfid);
+
 
   $context = array(
     'revision' => 'themed-original',
@@ -307,11 +321,11 @@ function uc_recurring_admin_edit_form_submit($form, &$form_state) {
   drupal_set_message(t('The changes to <a href="@user-link">@user</a> recurring fee @rfid (@title) has been saved. The next charge of !fee_amount will be on @date.', array('@user' => $member->name, '@user-link' => url('user/'. $member->uid), '@rfid' => $rfid, '@title' => $fee_title, '!fee_amount' => uc_price($fee_amount, $context), '@date' => format_date($next_charge))));
 
   // Fee was already cancelled and now has been resumed, add a comment to the order.
-  if ($fee->remaining_intervals == 0 && $form_state['values']['number_intervals'] != 0) {
+  if ($fee->status != $status && $status == UC_RECURRING_FEE_STATUS_ACTIVE) {
     uc_order_comment_save($fee->order_id, $user->uid, t('<a href="@user-link">@user</a> resumed the recurring fee <a href="@fee-link">@fee</a>.', array('@user-link' => url('user/'. $user->uid), '@user' => $user->name, '@fee-link' => url('admin/store/orders/recurring/view/fee/'. $rfid), '@fee'=> $rfid)));
   }
   // If the number of intervals was set to zero then also call cancel.
-  if ($fee->remaining_intervals != 0 && $number_intervals == 0) {
+  if ($fee->status == UC_RECURRING_FEE_STATUS_ACTIVE && $number_intervals == 0) {
     uc_recurring_fee_cancel($rfid, $fee);
   }
 }
@@ -323,9 +337,15 @@ function uc_recurring_payment_form() {
   $options = array();
   $methods = uc_recurring_get_recurring_info();
   foreach ($methods as $fee_handler => $method) {
+    if (!uc_recurring_payment_method_supported($fee_handler)) {
+      continue;
+    }
     if ($fee_handler == $method['payment method']) {
       $options[$fee_handler] = $method['name'] .' ('. $method['fee handler'] .')';
     }
+  }
+  if (empty($options)) {
+    drupal_set_message('No supported payment methods found. Recurring cannot be collected without a supported payment method.', 'error');
   }
   $form['uc_recurring_payment_methods'] = array(
     '#type' => 'checkboxes',

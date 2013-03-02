@@ -1,5 +1,4 @@
 <?php
-// $Id: uc_recurring_hosted.paypal_ipn.inc,v 1.1.2.7 2010/12/08 23:05:27 univate Exp $
 
 /**
  * @file

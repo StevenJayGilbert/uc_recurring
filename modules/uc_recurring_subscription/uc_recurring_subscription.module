@@ -1,5 +1,4 @@
 <?php
-// $Id: uc_recurring_subscription.module,v 1.1.2.3 2010/12/08 23:05:28 univate Exp $
 
 /**
  * @file
@@ -147,7 +146,7 @@ function uc_recurring_subscription_load($nid) {
  * Delete recurring subscription.
  */
 function uc_recurring_subscription_delete($nid) {
-  db_query("DELETE FROM {uc_recurring_subcription} WHERE nid = %d", $nid);
+  db_query("DELETE FROM {uc_recurring_subscription} WHERE nid = %d", $nid);
 }
 
 /**
@@ -321,4 +320,3 @@ function uc_recurring_subscription_uc_recurring_access_apply($fee, $product) {
     uc_order_comment_save($fee->order_id, $user->uid, t('Applied recurring access to role id: @role.', array('@role' => $rid)));
   }
 }
-

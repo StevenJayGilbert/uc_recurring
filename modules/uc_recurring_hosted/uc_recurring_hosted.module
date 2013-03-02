@@ -1,5 +1,4 @@
 <?php
-// $Id: uc_recurring_hosted.module,v 1.1.2.18 2010/12/08 23:05:27 univate Exp $
 
 /**
  * @file
@@ -552,7 +551,6 @@ function uc_recurring_hosted_paypal_wps_process($order, &$fee) {
   // the recurring payment is setup at the time of product purchase
   if (!empty($_POST['subscr_id'])) {
     $fee->data['subscr_id'] = $_POST['subscr_id'];
-    uc_order_update_status($order->order_id, 'paypal_pending');
     return TRUE;
   }
   return FALSE;
@@ -1327,22 +1325,10 @@ function uc_recurring_hosted_paypal_wpp_profile_creation_form_submit($form, &$fo
   $order->billing_zone = $form_state['values']['billing_zone'];
   $order->billing_postal_code = $form_state['values']['billing_postal_code'];
 
-  if($fee->next_charge < time()){
-    $periods_past_due = uc_recurring_vodaplex_determine_past_due($fee);
-  }
-
-  $result = uc_recurring_hosted_paypal_wpp_process($order,$fee);
+  $result = uc_recurring_hosted_paypal_wpp_process($order, $fee);
 
   if($result){
     db_query("UPDATE {uc_recurring_users} SET billing_assigned = 1 WHERE rfid = %d",$fee->rfid);
-
-    //check if periods to charge
-    if($periods_past_due > 0){
-      $amount = $fee->fee_amount * $periods_past_due;
-      $data['txn_type'] = UC_CREDIT_AUTH_CAPTURE;
-      uc_recurring_vodaplex_paypal_wpp_charge($order, $amount, $data);
-      uc_recurring_fee_user_save($fee);
-    }
 
     $cc_data = array(
       'cc_number' => substr($order->payment_details['cc_number'], -4),

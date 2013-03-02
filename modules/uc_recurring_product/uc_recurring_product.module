@@ -1,5 +1,4 @@
 <?php
-// $Id: uc_recurring_product.module,v 1.1.2.10 2010/12/08 23:05:28 univate Exp $
 
 /**
  * @file
@@ -139,6 +138,7 @@ function uc_recurring_product_feature_form($form_state, $node, $feature) {
     '#description' => t('Specify how many times the recurring fee will be charged.'),
   );
 
+  $attributes = array();
   if ($product->number_intervals < 0) {
     $attributes['checked'] = 'checked';
   }
@@ -312,7 +312,7 @@ function uc_recurring_product_form_uc_order_view_update_form_alter(&$form, $form
 /**
  * Implementation of hook_order().
  */
-function uc_recurring_product_order($op, &$arg1, $arg2) {
+function uc_recurring_product_order($op, $arg1, $arg2) {
   switch ($op) {
     // TODO: Allow admin to create a recurring order from "create order" page.
     case 'submit':
@@ -495,8 +495,13 @@ function uc_recurring_product_get_recurring_products_in_order($order) {
 
       while ($row = db_fetch_object($result)) {
         foreach ($products[$row->nid] as $key => $product) {
-          // No model name indicates we should use all models.
-          if ($row->model == '' || $row->model == $product['model']) {
+          // No model name indicates we should work for all models.
+          // However, we still need to have the sku of the recurring product,
+          // otherwise recurring orders will show products without a sku.
+          if ($row->model == '') {
+            $row->model = $product['model'];
+          }
+          if ($row->model == $product['model']) {
             $return[] = $product + array('recurring product' => $row);
           }
         }

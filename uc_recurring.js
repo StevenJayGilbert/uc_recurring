@@ -1,4 +1,3 @@
-// $Id: uc_recurring.js,v 1.1.2.1 2009/09/03 05:00:08 univate Exp $
 
 /**
  * Disable and enable fields in the recurring fee feature form.

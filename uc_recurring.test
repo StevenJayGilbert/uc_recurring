@@ -1,12 +1,11 @@
 <?php
-// $Id: uc_recurring.test,v 1.1.2.10 2010/12/08 23:05:27 univate Exp $
 
 /**
  * @file
  * UC Recurring simpletest
  */
 
-class ucRecurringTestCase extends UbercartTestCase {
+class ucRecurringTestCase extends UbercartCartCheckoutTestCase {
 
   /**
    * Add a recurring feature to a product.
