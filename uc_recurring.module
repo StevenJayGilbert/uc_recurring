@@ -327,6 +327,7 @@ function uc_recurring_token_list($type = 'all') {
     $tokens['recurring_fee']['charged-intervals'] = t('The number of recurring intervals due left in subscription.');
     $tokens['recurring_fee']['remaining-intervals'] = t('The number of recurring intervals due left in subscription.');
     $tokens['recurring_fee']['renewal-attempts'] = t('The number of attempts to try and renew this fee. ');
+    $tokens['recurring_fee']['recurring-link'] = t('Link to a users recurring payment history.');
   }
 
   return $tokens;
